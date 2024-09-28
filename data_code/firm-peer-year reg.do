@@ -225,5 +225,9 @@ sum abs_diff_rety,d
 areg dcamj attm1inverse chgsaledattm1 ppegtdattm1 bm size roa rety evol lvg c.peer_dcamj##c.abs_diff_rety i.fyear if fyear>2005, a(ff12) cl(cik) 
 outreg2 using Firm_peer_year_rety.xls, dec(3) alpha(0.01, 0.05, 0.1) symbol(***, **, *)         ///
 		drop (i.fyear) append ctitle(Jones Accruals) addtext(FE, Industry+Year) 
-		
+
+* firm - peer - year level for main table
+areg dcamj attm1inverse chgsaledattm1 ppegtdattm1 bm size roa rety evol lvg c.peer_dcamj i.fyear if fyear>2005, a(ff12) cl(cik) 
+outreg2 using Firm_peer_year_rety.xls, dec(3) alpha(0.01, 0.05, 0.1) symbol(***, **, *)         ///
+		drop (i.fyear) append ctitle(Jones Accruals) addtext(FE, Industry+Year) 
 		

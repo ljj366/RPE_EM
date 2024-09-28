@@ -127,7 +127,7 @@ ren actual peer_actual
 ren sue3_medest peer_sue3_medest
 ren sue3_meanest peer_sue3_meanest
 
-drop peercik_ds fycompustat fqtr
+drop peercik_ds fqtr
 
 save peer_sue, replace
 
@@ -287,7 +287,6 @@ replace D_sue3_extreme = 1 if  abs(sue3_medest - mean_sue_med_yr) > 2*sd_sue_med
 reghdfe dcamj bm size roa rety evol lvg c.med_dcamj##c.D_sue3_extreme  if fqtr==4 & fyear > 2005 , a(ff12 fyear) cl(cik_ds)
 
 
-
 /* 5%-quintile at firm-year level */	
 capture drop pct	
 egen pct = xtile(sue3_medest), by(fyear) n(20)
@@ -365,5 +364,62 @@ areg dcamj attm1inverse chgsaledattm1 ppegtdattm1 bm size roa rety evol lvg c.me
 outreg2 using report_late.xls, dec(3) alpha(0.01, 0.05, 0.1) symbol(***, **, *)         ///
 		drop(i.ff12) append ctitle(Mod Jones Accruals) addtext(FE, Industry+Year) 
 		
+
+*************************** Firm - PEER - YEAR level **********************************
+* merge peerlist and peer SUE
+use peer_sue ,clear
+keep if fyr == 12
+merge m:m peercik fycompustat using peerlist.dta
+drop if _merge ==1
+drop _merge
+
+* merge with RPE firms
+merge m:1 cik fycompustat using main_w
+drop if _merge == 1
+drop _merge
+
+* get RPE firms' sue
+merge m:m cik fycompustat using rpe_sue
+drop if _merge == 2
+drop _merge
+
+* get RPE firms' 1st stage
+merge m:1 cik fycompustat using rpe_var_1st
+drop if _merge ==2
+drop _merge
+
+* get peer dam
+preserve
+use accruals, clear
+ren cik peercik
+ren dcamodjones1991_w peer_dcamj
+ren fyear fycompustat
+save temp, replace
+restore
+
+merge m:m peercik fycompustat using temp.dta, keepusing(peer_dcamj)
+drop if _merge ==2
+drop _merge
+
+
+capture drop diff_sue abs_diff_sue
+gen diff_sue = sue3_medest - peer_sue3_medest
+gen abs_diff_sue = abs(diff_sue)
+sum abs_diff_sue,d
+
+areg dcamj attm1inverse chgsaledattm1 ppegtdattm1 bm size roa rety evol lvg c.peer_dcamj##c.abs_diff_sue i.fycompustat if fycompustat>2005, a(ff12) cl(cik) 
+
+
+capture drop pct	
+egen pct = xtile(abs_diff_sue), by(cik fycompustat) n(20)
+capture drop D_sue3_extreme
+gen D_sue3_extreme = 0 if abs_diff_sue ~=.
+replace D_sue3_extreme = 1 if (pct ==1 | pct==20) 
+
+areg dcamj attm1inverse chgsaledattm1 ppegtdattm1 bm size roa rety evol lvg c.peer_dcamj##c.D_sue3_extreme i.fycompustat if fycompustat>2005, a(ff12) cl(cik) 
+	
+bys cik fycompustat: gen n=_N
+	
+areg dcamj attm1inverse chgsaledattm1 ppegtdattm1 bm size roa rety evol lvg c.peer_dcamj##c.D_sue3_extreme i.fycompustat if fycompustat>2005 [aweight=n], a(ff12) cl(cik) 
 
 		
